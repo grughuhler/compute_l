@@ -37,6 +37,7 @@ void usage(void)
   fprintf(stderr, "  Freqeuncies in MHz\n");
   fprintf(stderr, "Options\n");
   fprintf(stderr, "  -c cap_value (pF)\n");
+  fprintf(stderr, "  -f compute F rather than L\n");
   fprintf(stderr, "  -r Print table of resonant frequencies\n");
   exit(EXIT_FAILURE);
 }
@@ -50,10 +51,10 @@ int main(int argc, char **argv)
   double F2 = 0.58e+6; /* Frequency with capacitor in Hz */
   double F1 = 1.77e+6; /* Frequency without capacitor in Hz */
   double CD, L, C, F;
-  double CX = 0.0;
   int i, opt, print_res = 0;
+  int compute_f = 0;
 
-  while ((opt = getopt(argc, argv, "c:rx:")) != -1) {
+  while ((opt = getopt(argc, argv, "c:frx:")) != -1) {
     switch (opt) {
     case 'c':
       CT = atof(optarg) * 1.0e-12;
@@ -61,13 +62,21 @@ int main(int argc, char **argv)
     case 'r':
       print_res = 1;
       break;
-    case 'x':
-      CX = atof(optarg) * 1.0e-12;
+    case 'f':
+      compute_f = 1;
       break;
     default:
       usage();
       break;
     }
+  }
+
+  if (compute_f) {
+    /* Next argument is L in uH, all we do is compute F */
+    if (argc - optind != 1) usage();
+    L = atof(argv[optind]) * 1.0e+6;
+    printf("F = %0.3lf MHz\n", 1.0/(2*PI*sqrt(L*CT)));
+    return EXIT_SUCCESS;
   }
 
   if (argc - optind == 1) {
@@ -86,7 +95,7 @@ int main(int argc, char **argv)
     CD = CT/(pow(F1/F2, 2.0) - 1.0);
   }
 
-  L = 1.0/(pow(2.0*PI*F2, 2.0) * (CD+CT+CX)) - LS;
+  L = 1.0/(pow(2.0*PI*F2, 2.0) * (CD+CT)) - LS;
 
   printf("Inductance (uH): %0.2lf\n", L*1.0e+6);
   if (CD != 0.0)
